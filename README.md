@@ -1,4 +1,4 @@
-# rebalance_ln
+# rebalance.py
 
 This is a simple python script to try moving sats from mostly-outbound channels to mostly-inbound channels.
 If you have 3 channels with only outbound capacity (A,B,C) and 2 channels with only inbound capacity (D,E), this script tries to send funds from
@@ -32,3 +32,5 @@ Then the script will match your imbalanced channels with inbound liquidity to th
     There are # channels with enough inbound-capacity
 ```
 This will succeed if you've specified a high-enough fee, and if there is a route available for the sats to flow.
+
+
