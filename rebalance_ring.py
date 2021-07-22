@@ -247,6 +247,9 @@ for one_channel in all_channels:
     pubkey_map[one_channel.remote_pubkey] = one_channel
 
 first_node = user_nodes[0]
+if first_node not in pubkey_map:
+    print("No active node found for the first pubkey", first_node)
+    exit(1)
 source_channel = pubkey_map[first_node]
 total_balance = source_channel.remote_balance
 total_balance += source_channel.local_balance
