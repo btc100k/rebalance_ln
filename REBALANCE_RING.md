@@ -47,12 +47,12 @@ What is the maximum fee you're willing to pay in satoishis? (Default: 50) #
 ---------------------------------------------------------
 ```
 
-That is it.
+The script creates invoices for requesting fee reimbursement.
 ```
 Success
-################################################################## charged 46650 msats
-################################################################## charged 373 msats
-################################################################## charged 0 msats
+Want to recover fees?
+Request ### sats from ################################################################## with this invoice:
+    ####################################################
 ```
 
 
