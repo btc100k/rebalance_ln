@@ -36,7 +36,7 @@ Then the script will as you which channel you want the funds to originate from.
 Assuming you added the nodes in the ring's connection order, the default should be the right channel.
 If this is the right channel, just press return.
 ```
-From what channel will the funds originate? (Default: 759630593454637056) 
+From what channel will the funds originate? (Default: ##################) 
 ---------------------------------------------------------
 ```
 
