@@ -105,6 +105,17 @@ class PaymentRoute:
         route_object["hops"] = hops_object
         self.route_object["route"] = route_object
 
+    def describe_fees(self):
+        route_object = self.route_object["route"]
+        hops_object = route_object["hops"]
+        summary = []
+        for one_hop in hops_object:
+            fee_msat = one_hop["fee_msat"]
+            pub_key = one_hop["pub_key"]
+            summary_string = "{pubkey} charged {fees} msats".format(pubkey=pub_key, fees=fee_msat)
+            summary.append(summary_string)
+        return "\n".join(summary)
+
 
 def get_lncli():
     which_lncli = Commandline("which lncli")
@@ -196,6 +207,11 @@ for x in range(500):
     if len(input_channel_id) == 0:
         break
     else:
+        if "@" in input_channel_id:
+            # if the full node addr was added, let us take the pubkey part
+            elements = input_channel_id.split("@")
+            input_channel_id = elements[0]
+
         nodes_map[input_channel_id] = 1
         user_nodes.append(input_channel_id)
         if len(nodes_map.keys()) != len(user_nodes):
@@ -203,19 +219,29 @@ for x in range(500):
             exit(1)
 print("---------------------------------------------------------")
 
-satoshi_count = input('How many satoshis do you want to send? (Default: 5000) ')
-print("---------------------------------------------------------")
-if len(satoshi_count) <= 0:
-    satoshi_count = 5000
-else:
-    satoshi_count = int(satoshi_count)
-
 pubkey_map = {}
 for one_channel in all_channels:
     pubkey_map[one_channel.remote_pubkey] = one_channel
 
 first_node = user_nodes[0]
 source_channel = pubkey_map[first_node]
+total_balance = source_channel.remote_balance
+total_balance += source_channel.local_balance
+half_balance = int((float(total_balance) / 2))
+est_amount = half_balance - source_channel.remote_balance
+if est_amount <= 0:
+    est_amount = 5000
+
+satoshi_count = input('How many satoshis do you want to send? (Default: {estimate}) '.format(estimate=est_amount))
+print("---------------------------------------------------------")
+if len(satoshi_count) < 0:
+    satoshi_count = est_amount
+elif len(satoshi_count) == 0:
+    print("Are you trying to move zero satoshis?", satoshi_count)
+    exit(1)
+else:
+    satoshi_count = int(satoshi_count)
+
 chan_id_string = input('From what channel will the funds originate? '
                        '(Default: {expected}) '.format(
     expected=source_channel.channel_id))
@@ -256,8 +282,10 @@ route_json = route_json.replace("\n", "")
 route_json = route_json.replace("\r", "")
 
 the_route = PaymentRoute(route_json)
-if the_route.total_fees_msat > int(max_fee * 1000):
-    print("Fee required is higher than max", the_route.total_fees_msat, "vs", max_fee)
+max_fee_msats = int(max_fee * 1000)
+if the_route.total_fees_msat > max_fee_msats:
+    print("Fee required is higher than max", the_route.total_fees_msat, "msats vs", max_fee_msats, "msats")
+    print(the_route.describe_fees())
     exit(1)
 
 invoice = create_invoice(satoshi_count)
@@ -283,6 +311,7 @@ if len(send_command.error) > 0:
 elif len(send_command.output) > 0:
     if '"status": "SUCCEEDED",' in send_command.output:
         print("Success")
+        print(the_route.describe_fees())
         if DEBUG:
             print(send_command.output)
     else:
