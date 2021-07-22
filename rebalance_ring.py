@@ -116,6 +116,21 @@ class PaymentRoute:
             summary.append(summary_string)
         return "\n".join(summary)
 
+    def recover_fees(self):
+        route_object = self.route_object["route"]
+        hops_object = route_object["hops"]
+        summary = []
+        for one_hop in hops_object:
+            fee_msat = int(one_hop["fee_msat"])
+            if fee_msat > 1000:
+                pub_key = one_hop["pub_key"]
+                whole_satoshis = int(fee_msat / 1000)
+                one_invoice = create_fee_recovery_invoice(whole_satoshis)
+                summary_string = "Request {fees} sats from {pubkey} with this invoice:\n   {invoice}".format(
+                    pubkey=pub_key, fees=whole_satoshis, invoice=one_invoice.payment_request)
+                summary.append(summary_string)
+        return "\n\n".join(summary)
+
 
 def get_lncli():
     which_lncli = Commandline("which lncli")
@@ -162,9 +177,9 @@ def get_channels():
     return result_array
 
 
-def create_invoice(invoice_amount):
-    addinvoice = '{lncli} addinvoice --expiry 360 --memo "Rebalance Ring" --amt {amount}'.format(
-        lncli=lncli_cmd, amount=invoice_amount)
+def create_invoice(invoice_amount, memo_str, expiry_sec):
+    addinvoice = '{lncli} addinvoice --expiry {seconds} --memo "{memo}" --amt {amount}'.format(
+        lncli=lncli_cmd, seconds=expiry_sec, memo=memo_str, amount=invoice_amount)
     if DEBUG:
         print(addinvoice)
         print("-" * 15)
@@ -185,6 +200,14 @@ def create_invoice(invoice_amount):
         print("Failed to create an invoice")
         exit(2)
     return PaymentInvoice(the_invoice)
+
+
+def create_balance_invoice(invoice_amount):
+    return create_invoice(invoice_amount, "Balance Ring", 360)
+
+
+def create_fee_recovery_invoice(invoice_amount):
+    return create_invoice(invoice_amount, "Reimburse Balance Fees", 3600)
 
 
 lncli_cmd = get_lncli()
@@ -237,10 +260,13 @@ print("---------------------------------------------------------")
 if len(satoshi_count) < 0:
     satoshi_count = est_amount
 elif len(satoshi_count) == 0:
-    print("Are you trying to move zero satoshis?", satoshi_count)
-    exit(1)
+    satoshi_count = est_amount
 else:
     satoshi_count = int(satoshi_count)
+
+if satoshi_count <= 0:
+    print("Are you trying to move zero satoshis? [", satoshi_count, "]")
+    exit(1)
 
 chan_id_string = input('From what channel will the funds originate? '
                        '(Default: {expected}) '.format(
@@ -288,7 +314,7 @@ if the_route.total_fees_msat > max_fee_msats:
     print(the_route.describe_fees())
     exit(1)
 
-invoice = create_invoice(satoshi_count)
+invoice = create_balance_invoice(satoshi_count)
 if DEBUG:
     print("Invoice rhash", invoice.r_hash)
     print("-" * 15)
@@ -309,9 +335,18 @@ if len(send_command.error) > 0:
     print("Failed to send the payment", send_command.error)
     exit(1)
 elif len(send_command.output) > 0:
-    if '"status": "SUCCEEDED",' in send_command.output:
+
+    if '"code": "FEE_INSUFFICIENT"' in send_command.output:
+        print("Balance failed because the fee was too low.")
+    elif '"status": "SUCCEEDED",' in send_command.output:
         print("Success")
-        print(the_route.describe_fees())
+        fee_str = the_route.recover_fees()
+        if len(fee_str) > 0:
+            print("Want to recover fees?")
+            print(fee_str)
+        else:
+            print("No fees worth recovering.")
+            print(the_route.describe_fees())
         if DEBUG:
             print(send_command.output)
     else:
