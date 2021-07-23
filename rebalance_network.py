@@ -3,7 +3,7 @@ import shlex
 import subprocess
 
 DEBUG = False
-MINIMUM_NODE_DISTANCE = 6
+MINIMUM_NODE_DISTANCE = 7
 MAX_NODE_DISTANCE = 4
 MIN_CHANNEL_CAPACITY = 500000
 
@@ -182,11 +182,16 @@ def get_route_length(pubkey):
     route_command = Commandline(get_route)
     route_command.run()
     if len(route_command.error) > 0:
-        print("Route Failed despite offering 1% fee - {pubkey}.".format(pubkey=pubkey))
         if DEBUG:
             print(get_route)
             print(route_command.error)
-        print("-" * 15)
+        # print("-" * 15)
+        if "unable to find a path to destination" in route_command.error:
+            return -1
+        else:
+            print("Route Failed despite offering 1% fee - {pubkey}.".format(pubkey=pubkey))
+            print(route_command.error)
+            print("-" * 33)
     elif len(route_command.output) > 0:
         data = json.loads(route_command.output)
         routes = data["routes"]
@@ -242,7 +247,9 @@ for distance in range(1, MAX_NODE_DISTANCE):
     for one_pubkey in all_pubkeys:
         if DEBUG:
             print("---", one_pubkey)
-        remote_node = get_remote_node(one_pubkey)
+        remote_node = None
+        if one_pubkey not in pubkey_hop_map:
+            remote_node = get_remote_node(one_pubkey)
         if remote_node is not None and remote_node.pub_key not in pubkey_hop_map:
             # This node has not been seen previously
             # so it is probably worth digging in here
@@ -250,9 +257,13 @@ for distance in range(1, MAX_NODE_DISTANCE):
             # if it is not far enough away, we dive deeper to this node's peers
             pubkey_hop_map[remote_node.pub_key] = distance
             for one_remote_channel in remote_node.remote_channels:
+                # If this channel has enough capacity
                 if one_remote_channel.capacity >= minimum_capacity:
+                    # If this node isn't already in our to-do list
                     if one_remote_channel.node2_pub not in next_level_nodes:
-                        next_level_nodes.append(one_remote_channel.node2_pub)
+                        # if this node wasn't visited on a previous level
+                        if one_remote_channel.node2_pub not in pubkey_hop_map:
+                            next_level_nodes.append(one_remote_channel.node2_pub)
                 elif DEBUG:
                     print("-- This node has a channel too small to follow:", remote_node.pub_key)
                     print("   Destination node:", one_remote_channel.node2_pub)
@@ -270,6 +281,17 @@ for distance in range(1, MAX_NODE_DISTANCE):
                     print("   Total Capacity:", "{:0.2f} BTC".format(float(total_btc)))
                     print("   Number of hops:", route_length)
                     print("-" * 33)
+                elif route_length == -1:
+                    print("   Failed to create route to", remote_node.pub_key)
+                    print("       This could be a good node to connect to.")
+                    print("   Alias:", remote_node.alias)
+                    print("   Link: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
+                    print("   Addr:", remote_node.full_address)
+                    print("   Channels:", remote_node.num_channels)
+                    total_btc = remote_node.total_capacity / 100000000
+                    print("   Total Capacity:", "{:0.2f} BTC".format(float(total_btc)))
+                    print("-" * 33)
+
             elif DEBUG:
                 print("-- This node is too close:", remote_node.pub_key)
                 print("   Distance:", distance)
