@@ -22,13 +22,13 @@ If you had a direct connection to a sufficiently distant node,
 What is the shortest route to consider?: (Default: 6) 
 Minimum channel capacity to consider nodes?: (Default: 500000) 
 ```
-Enter your base fee, ppm fee, and timelock delta. No need for spaces between commas. You can skip the timelock if you like 40.
 
 The script will then start making network calls looking at your channels:
 ```
 Collecting information on your channels: ##
 ++++++++++++++++++++
 ```
+
 The script then looks at all the channels of the nodes to which you have channels:
 ```
 Collecting channels for level 2 nodes: ##
@@ -40,6 +40,7 @@ The script then looks at the channels of the nodes to the nodes to which you hav
 Collecting channels for level 3 nodes: ###
 ++++++++++++++++++++
 ```
+
 This is where the script starts getting interesting.
 
 Depending upon the minimum route length you chose, you should soon start seeing suggestions for nodes to connect to:
