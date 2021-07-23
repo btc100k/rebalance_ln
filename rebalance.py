@@ -67,6 +67,7 @@ class Commandline:
 
 which_lncli = Commandline("which lncli")
 which_lncli.run()
+lncli_cmd = "lncli"
 if len(which_lncli.error) > 0:
     print("Failed to determine where lncli is located", which_lncli.error)
     exit(1)
@@ -78,7 +79,7 @@ else:
     lncli_cmd = "docker exec -it lnd lncli"
 
 if DEBUG:
-    print("Using {lncli".format(lncli_cmd))
+    print("Using {lncli}".format(lncli=lncli_cmd))
 
 listchannels = '{lncli} listchannels --active_only --public_only'.format(lncli=lncli_cmd)
 if DEBUG:
@@ -229,9 +230,3 @@ if len(unbalanced_channels) > 0:
 
             print("-" * 20)
 
-# if len(balanced_channels) > 0:
-#     print("Balanced: ", len(balanced_channels))
-#     for one_channel in balanced_channels:
-#         # print(one_channel.channel_id, one_channel.local_balance, one_channel.remote_balance,
-#         # one_channel.balance_score())
-#         pass
