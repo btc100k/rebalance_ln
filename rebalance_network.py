@@ -6,6 +6,8 @@ DEBUG = False
 MINIMUM_NODE_DISTANCE = 7
 MAX_NODE_DISTANCE = 4
 MIN_CHANNEL_CAPACITY = 500000
+MINIMUM_CHANNEL_COUNT = 5
+MINIMUM_BTC_COUNT = 0.10
 
 
 class RemoteChannel:
@@ -270,27 +272,32 @@ for distance in range(1, MAX_NODE_DISTANCE):
                     print("   Capacity:", one_remote_channel.capacity)
 
             if distance >= 2:
-                route_length = get_route_length(remote_node.pub_key)
-                if route_length >= minimum_distance:
-                    print("   Here is a good candidate node:", remote_node.pub_key)
-                    print("   Alias:", remote_node.alias)
-                    print("   Link: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
-                    print("   Addr:", remote_node.full_address)
-                    print("   Channels:", remote_node.num_channels)
-                    total_btc = remote_node.total_capacity / 100000000
-                    print("   Total Capacity:", "{:0.2f} BTC".format(float(total_btc)))
-                    print("   Number of hops:", route_length)
-                    print("-" * 33)
-                elif route_length == -1:
-                    print("   Failed to create route to", remote_node.pub_key)
-                    print("       This could be a good node to connect to.")
-                    print("   Alias:", remote_node.alias)
-                    print("   Link: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
-                    print("   Addr:", remote_node.full_address)
-                    print("   Channels:", remote_node.num_channels)
-                    total_btc = remote_node.total_capacity / 100000000
-                    print("   Total Capacity:", "{:0.2f} BTC".format(float(total_btc)))
-                    print("-" * 33)
+                total_btc = remote_node.total_capacity / 100000000
+                if remote_node.num_channels > MINIMUM_CHANNEL_COUNT and total_btc >= MINIMUM_BTC_COUNT:
+                    route_length = get_route_length(remote_node.pub_key)
+                    if route_length >= minimum_distance:
+                        print("   Here is a good candidate node:", remote_node.pub_key)
+                        print("   Alias:", remote_node.alias)
+                        print("   Link: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("   Addr:", remote_node.full_address)
+                        print("   Channels:", remote_node.num_channels)
+                        total_btc = remote_node.total_capacity / 100000000
+                        print("   Total Capacity:", "{:0.2f} BTC".format(float(total_btc)))
+                        print("   Number of hops:", route_length)
+                        print("-" * 33)
+                    elif route_length == -1:
+                        print("     Failed to create route to", remote_node.pub_key)
+                        print("         This node could be offline.")
+                        print("         or there might be no routes available.")
+                        print("     Alias:", remote_node.alias)
+                        print("     Link: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("     Addr:", remote_node.full_address)
+                        print("     Channels:", remote_node.num_channels)
+                        print("     Total Capacity:", "{:0.2f} BTC".format(float(total_btc)))
+                        print("-" * 33)
+                else:
+                    # this node has too few channels, or too little capacity
+                    pass
 
             elif DEBUG:
                 print("-- This node is too close:", remote_node.pub_key)
