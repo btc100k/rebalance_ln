@@ -9,3 +9,7 @@ This is a simple python script for setting the fees on your channels based upon 
 # rebalance_ring.py
 
 This is a simple python script for rebalancing a ring of nodes.
+
+# rebalance_network.py
+
+This is a simple python script for finding distant nodes to connect to.
