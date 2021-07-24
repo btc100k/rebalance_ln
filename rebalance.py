@@ -188,8 +188,7 @@ def get_channels():
     result_array = []
     the_channels = data["channels"]
     for channel_record in the_channels:
-        one = Channel(channel_record)
-        result_array.append(one)
+        result_array.append(Channel(channel_record))
 
     return result_array
 
