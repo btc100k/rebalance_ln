@@ -21,11 +21,6 @@ class Channel:
 
     # % that is remote
     def balance_ratio(self):
-        if self.local_balance == 0:
-            return 0.0
-        if self.remote_balance == 0:
-            return 1.0
-
         # this gets me a number between 0 & 1
         total = self.remote_balance + self.local_balance
         return float(self.remote_balance) / float(total)
