@@ -267,7 +267,9 @@ for distance in range(1, MAX_NODE_DISTANCE):
                     if route_length >= minimum_distance:
                         print("   Here is a good candidate node:", remote_node.pub_key)
                         print("   Alias:", remote_node.alias)
-                        print("   Link: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("   1ml: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("   Terminal Web: https://terminal.lightning.engineering/#/{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("   Amboss: https://amboss.space/node/026209{pubkey}".format(pubkey=remote_node.pub_key))
                         print("   Addr:", remote_node.full_address)
                         print("   Channels:", remote_node.num_channels)
                         total_btc = remote_node.total_capacity / 100000000
@@ -279,7 +281,9 @@ for distance in range(1, MAX_NODE_DISTANCE):
                         print("         This node could be offline.")
                         print("         or there might be no routes available.")
                         print("     Alias:", remote_node.alias)
-                        print("     Link: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("     1ml: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("     Terminal Web: https://terminal.lightning.engineering/#/{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("     Amboss: https://amboss.space/node/026209{pubkey}".format(pubkey=remote_node.pub_key))
                         print("     Addr:", remote_node.full_address)
                         print("     Channels:", remote_node.num_channels)
                         print("     Total Capacity:", "{:0.2f} BTC".format(float(total_btc)))
