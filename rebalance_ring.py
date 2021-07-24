@@ -19,26 +19,15 @@ class Channel:
         self.active = bool(record["active"])
         self.channel_point = record["channel_point"]
 
+    # % that is remote
     def balance_ratio(self):
-        if self.local_balance == 0:
-            return 1.0
-        if self.remote_balance == 0:
-            return 0.0
-
         # this gets me a number between 0 & 1
         total = self.remote_balance + self.local_balance
         return float(self.remote_balance) / float(total)
 
-    def balance_score(self):
-        if self.local_balance == 0:
-            return 0.0
-        if self.remote_balance == 0:
-            return 1000.0
-        return float(self.remote_balance) / float(self.local_balance)
-
     def out_of_balance(self):
-        balance_score = self.balance_ratio()
-        if balance_score > 0.75 or balance_score < 0.25:
+        balance_ratio = self.balance_ratio()
+        if balance_ratio > 0.7 or balance_ratio < 0.3:
             return True
         return False
 
