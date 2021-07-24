@@ -24,26 +24,15 @@ class Channel:
         self.base_fee_msat = DEFAULT_BASE_FEE
         self.ppm_fee = DEFAULT_BASE_PPM
 
+    # % that is remote
     def balance_ratio(self):
-        if self.local_balance == 0:
-            return 1.0
-        if self.remote_balance == 0:
-            return 0.0
-
         # this gets me a number between 0 & 1
         total = self.remote_balance + self.local_balance
         return float(self.remote_balance) / float(total)
 
-    def balance_score(self):
-        if self.local_balance == 0:
-            return 0.0
-        if self.remote_balance == 0:
-            return 1000.0
-        return float(self.remote_balance) / float(self.local_balance)
-
     def out_of_balance(self):
-        balance_score = self.balance_ratio()
-        if balance_score > 0.75 or balance_score < 0.25:
+        balance_ratio = self.balance_ratio()
+        if balance_ratio > 0.7 or balance_ratio < 0.3:
             return True
         return False
 
@@ -183,7 +172,7 @@ print("   -- reset fees on mostly-balanced channels")
 user_base = DEFAULT_BASE_FEE
 user_ppm = DEFAULT_BASE_PPM
 user_timelock = DEFAULT_TIMELOCK
-user_input = input('What would you like your base fee to be? [base,ppm,time lock format]'
+user_input = input('What would you like your base fee to be? [format: base,ppm,timelock]'
                    ' ({base},{ppm},{timelock} sats default) : '.format(
                    base=user_base, ppm=user_ppm, timelock=user_timelock))
 if len(user_input) > 0:
@@ -220,7 +209,7 @@ for unbalanced in unbalanced_channels:
         # range 0.50 - 0.25
         adjusted_base = int(float(user_base) / float(adjusted_score))
         adjusted_ppm = int(float(user_ppm) / float(adjusted_score))
-    else:
+    elif score < 0.50:
         # mostly local
         # we want to lower fees
 
@@ -230,41 +219,50 @@ for unbalanced in unbalanced_channels:
         # range 0.50 - 0.25
         adjusted_base = int(float(user_base) * float(adjusted_score))
         adjusted_ppm = int(float(user_ppm) * float(adjusted_score))
+    else:
+        adjusted_base = int(user_base)
+        adjusted_ppm = int(user_ppm)
 
-    print(unbalanced.channel_id, "out of balance", unbalanced.local_balance,
-          unbalanced.remote_balance)  # .format(base=user_base, ppm=user_ppm)
-    print("   Current fees", unbalanced.base_fee_msat, unbalanced.ppm_fee)
-    print("   Updating fees to", adjusted_base, adjusted_ppm)
-    udpatefee = '{lncli} updatechanpolicy --base_fee_msat {base_fee} ' \
-                '--fee_rate {ppm_fee} --time_lock_delta {timelock} --chan_point {channel_point}'.format(
-                lncli=lncli_cmd, base_fee=adjusted_base, ppm_fee=(float(adjusted_ppm)/1000000),
-                channel_point=unbalanced.channel_point, timelock=user_timelock)
-    if DEBUG:
-        print(udpatefee)
-        print("-" * 15)
-    update_fee_command = Commandline(udpatefee)
-    update_fee_command.run()
-    if len(update_fee_command.error) > 0:
-        print("Failed to update fee", update_fee_command.error)
-        exit(1)
+    print(unbalanced.channel_id, "out of balance", unbalanced.local_balance, unbalanced.remote_balance)
+    print("   Channel balance is {:0.0f}% remote".format(unbalanced.balance_ratio()*100))
+    if unbalanced.base_fee_msat != adjusted_base:
+        print("   Current fees", unbalanced.base_fee_msat, unbalanced.ppm_fee)
+        print("   Updating fees to", adjusted_base, adjusted_ppm)
+        udpatefee = '{lncli} updatechanpolicy --base_fee_msat {base_fee} ' \
+                    '--fee_rate {ppm_fee} --time_lock_delta {timelock} --chan_point {channel_point}'.format(
+            lncli=lncli_cmd, base_fee=adjusted_base, ppm_fee=(float(adjusted_ppm)/1000000),
+            channel_point=unbalanced.channel_point, timelock=user_timelock)
+        if DEBUG:
+            print(udpatefee)
+            print("-" * 15)
+        update_fee_command = Commandline(udpatefee)
+        update_fee_command.run()
+        if len(update_fee_command.error) > 0:
+            print("Failed to update fee", update_fee_command.error)
+            exit(1)
+    else:
+        print("   Keeping fees the same", unbalanced.base_fee_msat, unbalanced.ppm_fee)
     print("-" * 20)
 
 
 for balanced in balanced_channels:
-    print(balanced.channel_id, "is mostly balanced", balanced.local_balance,
-          balanced.remote_balance)
-    print("   Current fees", balanced.base_fee_msat, balanced.ppm_fee)
-    print("   Updating fees to", user_base, user_ppm)
-    udpatefee = '{lncli} updatechanpolicy --base_fee_msat {base_fee} ' \
-                '--fee_rate {ppm_fee} --time_lock_delta {timelock} --chan_point {channel_point}'.format(
-        lncli=lncli_cmd, base_fee=user_base, ppm_fee=(float(user_ppm)/1000000),
-        channel_point=balanced.channel_point, timelock=user_timelock)
-    if DEBUG:
-        print(udpatefee)
-        print("-" * 15)
-    update_fee_command = Commandline(udpatefee)
-    update_fee_command.run()
-    if len(update_fee_command.error) > 0:
-        print("Failed to update fee", update_fee_command.error)
-        exit(1)
+    print(balanced.channel_id, "is mostly balanced", balanced.local_balance, balanced.remote_balance)
+    print("   Channel balance is {:0.0f}% remote".format(balanced.balance_ratio()*100))
+    if balanced.base_fee_msat != user_base:
+        print("   Current fees", balanced.base_fee_msat, balanced.ppm_fee)
+        print("   Updating fees to", user_base, user_ppm)
+        udpatefee = '{lncli} updatechanpolicy --base_fee_msat {base_fee} ' \
+                    '--fee_rate {ppm_fee} --time_lock_delta {timelock} --chan_point {channel_point}'.format(
+            lncli=lncli_cmd, base_fee=user_base, ppm_fee=(float(user_ppm)/1000000),
+            channel_point=balanced.channel_point, timelock=user_timelock)
+        if DEBUG:
+            print(udpatefee)
+            print("-" * 15)
+        update_fee_command = Commandline(udpatefee)
+        update_fee_command.run()
+        if len(update_fee_command.error) > 0:
+            print("Failed to update fee", update_fee_command.error)
+            exit(1)
+    else:
+        print("   Keeping fees the same", balanced.base_fee_msat, balanced.ppm_fee)
     print("-" * 20)
