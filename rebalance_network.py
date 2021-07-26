@@ -92,6 +92,14 @@ class Commandline:
             self.error = stderr.decode("utf-8")
 
 
+class RouteSummary:
+    def __init__(self, hop_count, success_prob=0.0, fee_percentage=0.0, tx_amount=0):
+        self.hop_count = hop_count
+        self.success_prob = success_prob
+        self.fee_percentage = fee_percentage
+        self.tx_amount = tx_amount
+
+
 def get_lncli():
     which_lncli = Commandline("which lncli")
     which_lncli.run()
@@ -164,9 +172,9 @@ def get_remote_node(pubkey):
     return None
 
 
-def get_route_length(pubkey):
-    get_route = '{lncli} queryroutes --dest {pubkey} --amt 15000 --fee_limit 150'.format(
-        lncli=lncli_cmd, pubkey=pubkey)
+def get_route_length(pubkey, amount):
+    get_route = '{lncli} queryroutes --dest {pubkey} --amt {amount} '.format(
+        lncli=lncli_cmd, pubkey=pubkey, amount=amount)
     if DEBUG:
         print(get_route)
         print("-" * 15)
@@ -178,24 +186,30 @@ def get_route_length(pubkey):
             print(route_command.error)
         # print("-" * 15)
         if "unable to find a path to destination" in route_command.error:
-            return -1
+            return RouteSummary(-1)
         else:
-            print("Route Failed despite offering 1% fee - {pubkey}.".format(pubkey=pubkey))
+            print("Route Failed - {pubkey}.".format(pubkey=pubkey))
             print(route_command.error)
             print("-" * 33)
     elif len(route_command.output) > 0:
         data = json.loads(route_command.output)
         routes = data["routes"]
-        r_len = 100
+        success_prob = float(data["success_prob"])
+        response_route = RouteSummary(9999)
         for route in routes:
             hops = route["hops"]
-            if len(hops) < r_len:
-                r_len = len(hops)
-        return r_len
+            total_fees = int(route["total_fees"])
+            total_fee_percentage = float(total_fees) / float(amount)
+            if len(hops) < response_route.hop_count:
+                response_route = RouteSummary(hop_count=len(hops),
+                                              success_prob=success_prob,
+                                              fee_percentage=total_fee_percentage,
+                                              tx_amount=amount)
+        return response_route
     else:
         if DEBUG:
             print("No route found - Skipping {pubkey}.".format(pubkey=pubkey))
-    return 0
+    return RouteSummary(0)
 
 
 print("We're going to look at all the channels of the nodes to which you have outbound channels")
@@ -263,27 +277,35 @@ for distance in range(1, MAX_NODE_DISTANCE):
             if distance >= 2:
                 total_btc = remote_node.total_capacity / 100000000
                 if remote_node.num_channels > MINIMUM_CHANNEL_COUNT and total_btc >= MINIMUM_BTC_COUNT:
-                    route_length = get_route_length(remote_node.pub_key)
-                    if route_length >= minimum_distance:
+                    one_route = get_route_length(remote_node.pub_key, 1500)  # Around $0.50 USD
+                    if one_route.hop_count < minimum_distance:
+                        one_route = get_route_length(remote_node.pub_key, 500000)  # Around $150 USD
+                    if one_route.hop_count >= minimum_distance:
                         print("   Here is a good candidate node:", remote_node.pub_key)
                         print("   Alias:", remote_node.alias)
                         print("   1ml: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
-                        print("   Terminal Web: https://terminal.lightning.engineering/#/{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("   Terminal Web: https://terminal.lightning.engineering/#/{pubkey}".format(
+                            pubkey=remote_node.pub_key))
                         print("   Amboss: https://amboss.space/node/026209{pubkey}".format(pubkey=remote_node.pub_key))
                         print("   Addr:", remote_node.full_address)
                         print("   Channels:", remote_node.num_channels)
                         total_btc = remote_node.total_capacity / 100000000
                         print("   Total Capacity:", "{:0.2f} BTC".format(float(total_btc)))
-                        print("   Number of hops:", route_length)
+                        print("   Number of hops:", one_route.hop_count)
+                        print("   TX Amount:", one_route.tx_amount)
+                        print("   Fee Percentage:", "{:0.2f}%".format((one_route.fee_percentage * 100)))
+                        print("   Success Probability:", "{:0.2f}%".format((one_route.success_prob * 100)))
                         print("-" * 33)
-                    elif route_length == -1:
+                    elif one_route.hop_count == -1:
                         print("     Failed to create route to", remote_node.pub_key)
                         print("         This node could be offline.")
                         print("         or there might be no routes available.")
                         print("     Alias:", remote_node.alias)
                         print("     1ml: https://1ml.com/node/{pubkey}".format(pubkey=remote_node.pub_key))
-                        print("     Terminal Web: https://terminal.lightning.engineering/#/{pubkey}".format(pubkey=remote_node.pub_key))
-                        print("     Amboss: https://amboss.space/node/026209{pubkey}".format(pubkey=remote_node.pub_key))
+                        print("     Terminal Web: https://terminal.lightning.engineering/#/{pubkey}".format(
+                            pubkey=remote_node.pub_key))
+                        print(
+                            "     Amboss: https://amboss.space/node/026209{pubkey}".format(pubkey=remote_node.pub_key))
                         print("     Addr:", remote_node.full_address)
                         print("     Channels:", remote_node.num_channels)
                         print("     Total Capacity:", "{:0.2f} BTC".format(float(total_btc)))
