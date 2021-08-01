@@ -4,8 +4,8 @@ import subprocess
 
 DEBUG = False
 DEBUG_FAILURE = False
-DEFAULT_BASE_FEE = 1000
-DEFAULT_BASE_PPM = 1
+DEFAULT_BASE_FEE = 0
+DEFAULT_BASE_PPM = 1000
 DEFAULT_TIMELOCK = 40
 
 
@@ -207,8 +207,14 @@ for unbalanced in unbalanced_channels:
         # adjusted_score is the amount out of balance we are
         adjusted_score = score - 0.50
         # range 0.50 - 0.25
-        adjusted_base = int(float(user_base) / float(adjusted_score))
-        adjusted_ppm = int(float(user_ppm) / float(adjusted_score))
+        if user_base > 0:
+            adjusted_base = int(float(user_base) / float(adjusted_score))
+        else:
+            adjusted_base = 0
+        if user_ppm > 0:
+            adjusted_ppm = int(float(user_ppm) / float(adjusted_score))
+        else:
+            adjusted_ppm = 0
     elif score < 0.50:
         # mostly local
         # we want to lower fees
@@ -217,8 +223,14 @@ for unbalanced in unbalanced_channels:
         adjusted_score = 0.50 - score
 
         # range 0.50 - 0.25
-        adjusted_base = int(float(user_base) * float(adjusted_score))
-        adjusted_ppm = int(float(user_ppm) * float(adjusted_score))
+        if user_base > 0:
+            adjusted_base = int(float(user_base) * float(adjusted_score))
+        else:
+            adjusted_base = 0
+        if user_ppm > 0:
+            adjusted_ppm = int(float(user_ppm) * float(adjusted_score))
+        else:
+            adjusted_ppm = 0
     else:
         adjusted_base = int(user_base)
         adjusted_ppm = int(user_ppm)
