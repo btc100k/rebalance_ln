@@ -174,7 +174,7 @@ user_ppm = DEFAULT_BASE_PPM
 user_timelock = DEFAULT_TIMELOCK
 user_input = input('What would you like your base fee to be? [format: base,ppm,timelock]'
                    ' ({base},{ppm},{timelock} sats default) : '.format(
-                   base=user_base, ppm=user_ppm, timelock=user_timelock))
+    base=user_base, ppm=user_ppm, timelock=user_timelock))
 if len(user_input) > 0:
     two_words = user_input.split(',')
     if len(two_words) == 1:
@@ -196,7 +196,7 @@ if user_timelock <= 0:
 
 print("Using {base},{ppm} sats as our base fee, "
       "with {timelock} as the timelock.".format(
-      base=user_base, ppm=user_ppm, timelock=user_timelock))
+    base=user_base, ppm=user_ppm, timelock=user_timelock))
 
 for unbalanced in unbalanced_channels:
     score = unbalanced.balance_ratio()
@@ -236,13 +236,13 @@ for unbalanced in unbalanced_channels:
         adjusted_ppm = int(user_ppm)
 
     print(unbalanced.channel_id, "out of balance", unbalanced.local_balance, unbalanced.remote_balance)
-    print("   Channel balance is {:0.0f}% remote".format(unbalanced.balance_ratio()*100))
-    if unbalanced.base_fee_msat != adjusted_base:
+    print("   Channel balance is {:0.0f}% remote".format(unbalanced.balance_ratio() * 100))
+    if unbalanced.base_fee_msat != adjusted_base or unbalanced.ppm_fee != adjusted_ppm:
         print("   Current fees", unbalanced.base_fee_msat, unbalanced.ppm_fee)
         print("   Updating fees to", adjusted_base, adjusted_ppm)
         udpatefee = '{lncli} updatechanpolicy --base_fee_msat {base_fee} ' \
                     '--fee_rate {ppm_fee} --time_lock_delta {timelock} --chan_point {channel_point}'.format(
-            lncli=lncli_cmd, base_fee=adjusted_base, ppm_fee=(float(adjusted_ppm)/1000000),
+            lncli=lncli_cmd, base_fee=adjusted_base, ppm_fee=(float(adjusted_ppm) / 1000000),
             channel_point=unbalanced.channel_point, timelock=user_timelock)
         if DEBUG:
             print(udpatefee)
@@ -256,16 +256,15 @@ for unbalanced in unbalanced_channels:
         print("   Keeping fees the same", unbalanced.base_fee_msat, unbalanced.ppm_fee)
     print("-" * 20)
 
-
 for balanced in balanced_channels:
     print(balanced.channel_id, "is mostly balanced", balanced.local_balance, balanced.remote_balance)
-    print("   Channel balance is {:0.0f}% remote".format(balanced.balance_ratio()*100))
+    print("   Channel balance is {:0.0f}% remote".format(balanced.balance_ratio() * 100))
     if balanced.base_fee_msat != user_base:
         print("   Current fees", balanced.base_fee_msat, balanced.ppm_fee)
         print("   Updating fees to", user_base, user_ppm)
         udpatefee = '{lncli} updatechanpolicy --base_fee_msat {base_fee} ' \
                     '--fee_rate {ppm_fee} --time_lock_delta {timelock} --chan_point {channel_point}'.format(
-            lncli=lncli_cmd, base_fee=user_base, ppm_fee=(float(user_ppm)/1000000),
+            lncli=lncli_cmd, base_fee=user_base, ppm_fee=(float(user_ppm) / 1000000),
             channel_point=balanced.channel_point, timelock=user_timelock)
         if DEBUG:
             print(udpatefee)
