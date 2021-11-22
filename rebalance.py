@@ -75,8 +75,8 @@ def pay_invoice_for_sats_to_remote(invoice, sats, remote):
         # This could work for a rebalancing
         payinvoice = "{lncli} payinvoice --force  --fee_limit {fee_limit} --allow_self_payment " \
                      "--outgoing_chan_id {channel} --last_hop {remote_pubkey} {invoice}".format(
-            lncli=lncli_cmd, fee_limit=FEE_PER_REBALANCE, channel=outgoing_chan_id,
-            remote_pubkey=remote_pubkey, invoice=invoice)
+                                lncli=lncli_cmd, fee_limit=FEE_PER_REBALANCE, channel=outgoing_chan_id,
+                                remote_pubkey=remote_pubkey, invoice=invoice)
         if DEBUG:
             print(payinvoice)
             print("==" * 15)
@@ -226,12 +226,22 @@ if len(unbalanced_channels) > 0:
     print("Using {fees} sats as our maximum fee".format(fees=FEE_PER_REBALANCE))
     print("")
 
-    user_input = input('Do you want to try moving 25% of the channel capacity? Type y / n : ')
+    move_specific = 0
+    user_input = input('Do you want to try moving a fixed amount per channel? Type y / n : ')
     print("")
     if user_input.startswith("y") or user_input.startswith("Y"):
+        user_input = input('OK, great. How many sats would you like to move (at most)? (250000)) : ')
         move_less = True
+        move_specific = int(user_input)
+        if move_specific == 0:
+            move_specific = 250000
     else:
-        move_less = False
+        user_input = input('Do you want to try moving 25% of the channel capacity? Type y / n : ')
+        print("")
+        if user_input.startswith("y") or user_input.startswith("Y"):
+            move_less = True
+        else:
+            move_less = False
 
     if len(mostly_local) > 0 and len(mostly_remote) > 0:
         # we have at least one pair we can try to rebalance
@@ -242,6 +252,8 @@ if len(unbalanced_channels) > 0:
         for one_local in mostly_local:
             if move_less is True:
                 payment_amount = int((one_local.local_balance + one_local.remote_balance) / 4)
+                if 0 < move_specific < payment_amount:
+                    payment_amount = move_specific
             else:
                 payment_amount = int((one_local.local_balance + one_local.remote_balance) / 2)
                 if one_local.remote_balance < payment_amount:
