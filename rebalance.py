@@ -247,7 +247,7 @@ if len(unbalanced_channels) > 0:
 
     if len(mostly_local) > 0 and len(mostly_remote) > 0:
         # we have at least one pair we can try to rebalance
-        mostly_local.sort(key=lambda x: x.local_balance, reverse=True)
+        mostly_local.sort(key=lambda x: x.remote_balance, reverse=False)
         mostly_remote.sort(key=lambda x: x.remote_balance, reverse=True)
         # lncli addinvoice --expiry 60 --memo "Automatic rebalancing" --amt <>
         # lncli payinvoice --fee_limit 20 --allow_self_payment --outgoing_chan_id <> --last_hop <> <invoice>
