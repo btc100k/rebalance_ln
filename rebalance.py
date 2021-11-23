@@ -231,9 +231,11 @@ if len(unbalanced_channels) > 0:
     print("")
     if user_input.startswith("y") or user_input.startswith("Y"):
         user_input = input('OK, great. How many sats would you like to move (at most)? (250000)) : ')
+        if len(user_input) == 0:
+            user_input = 250000
         move_less = True
         move_specific = int(user_input)
-        if move_specific == 0:
+        if move_specific <= 0:
             move_specific = 250000
     else:
         user_input = input('Do you want to try moving 25% of the channel capacity? Type y / n : ')
